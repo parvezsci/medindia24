@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import Image from 'next/image'
 
 export default function Home() {
-  const [profile, setProfile] = useState(null)
+  const [profile, setProfile] = useState<any>(null)
   const [checked, setChecked] = useState(false)
   const [stats, setStats] = useState({ stores: 0, orders: 0 })
 
@@ -122,7 +122,7 @@ export default function Home() {
 
       {/* WHY MEDLINK */}
       <section className="max-w-5xl mx-auto px-4 pb-20">
-        <h2 className="text-3xl font-bold text-primary text-center mb-12">Medindia24 Kyun</h2>
+        <h2 className="text-3xl font-bold text-primary text-center mb-12">MedLink Kyun</h2>
         <div className="grid sm:grid-cols-2 gap-6">
           <div className="bg-white rounded-2xl shadow-md p-6 flex gap-4 items-start border border-accent/20">
             <span className="text-3xl">🏪</span>
@@ -155,6 +155,55 @@ export default function Home() {
         </div>
       </section>
 
+      {/* TRUST & SAFETY */}
+      <section className="max-w-5xl mx-auto px-4 pb-20">
+        <h2 className="text-3xl font-bold text-primary text-center mb-10">Bharosa aur Suraksha</h2>
+        <div className="grid sm:grid-cols-3 gap-6">
+          <div className="bg-white rounded-2xl shadow-md p-6 text-center border border-accent/20">
+            <div className="text-4xl mb-3">✅</div>
+            <p className="font-semibold text-primary text-lg mb-1">Verified Stores Only</p>
+            <p className="text-sm text-textmuted">Sirf drug license verified medical stores hi list me aate hain</p>
+          </div>
+          <div className="bg-white rounded-2xl shadow-md p-6 text-center border border-accent/20">
+            <div className="text-4xl mb-3">📋</div>
+            <p className="font-semibold text-primary text-lg mb-1">Prescription Required</p>
+            <p className="text-sm text-textmuted">Har order pe prescription check hota hai, galat dawai nahi milegi</p>
+          </div>
+          <div className="bg-white rounded-2xl shadow-md p-6 text-center border border-accent/20">
+            <div className="text-4xl mb-3">🔒</div>
+            <p className="font-semibold text-primary text-lg mb-1">Secure & Private</p>
+            <p className="text-sm text-textmuted">Aapka data aur prescription completely private rehta hai</p>
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS */}
+      <section className="bg-white py-16 px-4">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl font-bold text-primary text-center mb-12">Log Kya Kehte Hain</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-bg rounded-2xl p-6 shadow-sm border border-accent/20">
+              <p className="text-textmuted text-sm mb-4">
+                "Pehle online medicine order karne me darr lagta tha. MedLink pe local chemist se order kiya, bilkul sahi dawai mili aur jaldi deliver ho gayi."
+              </p>
+              <p className="font-semibold text-primary">— Rahul S., Customer</p>
+            </div>
+            <div className="bg-bg rounded-2xl p-6 shadow-sm border border-accent/20">
+              <p className="text-textmuted text-sm mb-4">
+                "Mera medical store ab online orders bhi le raha hai. Customers khush hain aur business bhi badha hai."
+              </p>
+              <p className="font-semibold text-primary">— Anil Chemist, Store Owner</p>
+            </div>
+            <div className="bg-bg rounded-2xl p-6 shadow-sm border border-accent/20">
+              <p className="text-textmuted text-sm mb-4">
+                "Prescription upload kiya aur 2 ghante me dawai ghar aa gayi. Local store se hi mili, trust bana rahta hai."
+              </p>
+              <p className="font-semibold text-primary">— Priya M., Customer</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* STORE OWNER CTA */}
       <section className="bg-primary py-14 px-4">
         <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-10 items-center">
@@ -177,83 +226,33 @@ export default function Home() {
           </div>
         </div>
       </section>
-      {/* TRUST & SAFETY */}
-<section className="max-w-5xl mx-auto px-4 pb-20">
-  <h2 className="text-3xl font-bold text-primary text-center mb-10">Bharosa aur Suraksha</h2>
-  <div className="grid sm:grid-cols-3 gap-6">
-    <div className="bg-white rounded-2xl shadow-md p-6 text-center border border-accent/20">
-      <div className="text-4xl mb-3">✅</div>
-      <p className="font-semibold text-primary text-lg mb-1">Verified Stores Only</p>
-      <p className="text-sm text-textmuted">Sirf drug license verified medical stores hi list me aate hain</p>
-    </div>
-    <div className="bg-white rounded-2xl shadow-md p-6 text-center border border-accent/20">
-      <div className="text-4xl mb-3">📋</div>
-      <p className="font-semibold text-primary text-lg mb-1">Prescription Required</p>
-      <p className="text-sm text-textmuted">Har order pe prescription check hota hai, galat dawai nahi milegi</p>
-    </div>
-    <div className="bg-white rounded-2xl shadow-md p-6 text-center border border-accent/20">
-      <div className="text-4xl mb-3">🔒</div>
-      <p className="font-semibold text-primary text-lg mb-1">Secure & Private</p>
-      <p className="text-sm text-textmuted">Aapka data aur prescription completely private rehta hai</p>
-    </div>
-  </div>
-</section>
-{/* TESTIMONIALS */}
-<section className="bg-white py-16 px-4">
-  <div className="max-w-5xl mx-auto">
-    <h2 className="text-3xl font-bold text-primary text-center mb-12">Log Kya Kehte Hain</h2>
-    <div className="grid md:grid-cols-3 gap-6">
-      <div className="bg-bg rounded-2xl p-6 shadow-sm border border-accent/20">
-        <p className="text-textmuted text-sm mb-4">
-          “Pehle online medicine order karne me darr lagta tha. MedLink pe local chemist se order kiya, bilkul sahi dawai mili aur jaldi deliver ho gayi.”
-        </p>
-        <p className="font-semibold text-primary">— Rahul S., Customer</p>
-      </div>
-      <div className="bg-bg rounded-2xl p-6 shadow-sm border border-accent/20">
-        <p className="text-textmuted text-sm mb-4">
-          “Mera medical store ab online orders bhi le raha hai. Customers khush hain aur business bhi badha hai. Bahut accha platform hai.”
-        </p>
-        <p className="font-semibold text-primary">— Anil Chemist, Store Owner</p>
-      </div>
-      <div className="bg-bg rounded-2xl p-6 shadow-sm border border-accent/20">
-        <p className="text-textmuted text-sm mb-4">
-          “Prescription upload kiya aur 2 ghante me dawai ghar aa gayi. Local store se hi mili, trust bana rahta hai.”
-        </p>
-        <p className="font-semibold text-primary">— Priya M., Customer</p>
-      </div>
-    </div>
-  </div>
-</section>
-{/* FAQ */}
-<section className="max-w-3xl mx-auto px-4 py-20">
-  <h2 className="text-3xl font-bold text-primary text-center mb-10">Aksar Puche Jane Wale Sawal</h2>
-  
-  <div className="space-y-4">
-    <div className="bg-white rounded-xl shadow-sm p-5 border border-accent/20">
-      <p className="font-semibold text-primary mb-1">Kya sirf registered stores hi hain?</p>
-      <p className="text-sm text-textmuted">Haan, har store ko manually verify kiya jata hai drug license ke saath. Koi random store nahi aata.</p>
-    </div>
-    
-    <div className="bg-white rounded-xl shadow-sm p-5 border border-accent/20">
-      <p className="font-semibold text-primary mb-1">Prescription upload karna zaroori hai?</p>
-      <p className="text-sm text-textmuted">Haan, schedule H aur X medicines ke liye prescription zaroori hai. Store hi usko verify karta hai.</p>
-    </div>
-    
-    <div className="bg-white rounded-xl shadow-sm p-5 border border-accent/20">
-      <p className="font-semibold text-primary mb-1">Delivery kitne time me hoti hai?</p>
-      <p className="text-sm text-textmuted">Local store ke hisaab se 1-4 hours me delivery mil sakti hai. Aap pickup bhi choose kar sakte ho.</p>
-    </div>
-    
-    <div className="bg-white rounded-xl shadow-sm p-5 border border-accent/20">
-      <p className="font-semibold text-primary mb-1">Payment kaise hota hai?</p>
-      <p className="text-sm text-textmuted">Abhi cash on delivery / pickup pe payment hota hai. Online payment jald add hoga.</p>
-    </div>
-  </div>
-</section>
+
+      {/* FAQ */}
+      <section className="max-w-3xl mx-auto px-4 py-20">
+        <h2 className="text-3xl font-bold text-primary text-center mb-10">Aksar Puche Jane Wale Sawal</h2>
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-accent/20">
+            <p className="font-semibold text-primary mb-1">Kya sirf registered stores hi hain?</p>
+            <p className="text-sm text-textmuted">Haan, har store ko manually verify kiya jata hai drug license ke saath.</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-accent/20">
+            <p className="font-semibold text-primary mb-1">Prescription upload karna zaroori hai?</p>
+            <p className="text-sm text-textmuted">Haan, schedule H aur X medicines ke liye prescription zaroori hai.</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-accent/20">
+            <p className="font-semibold text-primary mb-1">Delivery kitne time me hoti hai?</p>
+            <p className="text-sm text-textmuted">Local store ke hisaab se 1-4 hours me delivery mil sakti hai.</p>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-accent/20">
+            <p className="font-semibold text-primary mb-1">Payment kaise hota hai?</p>
+            <p className="text-sm text-textmuted">Customer store ke UPI ID/QR par seedha payment karta hai, ya Cash on Delivery.</p>
+          </div>
+        </div>
+      </section>
 
       {/* FOOTER */}
       <footer className="text-center py-8 text-sm text-textmuted border-t border-accent/30">
-        © 2026 Medindia24. Local chemists ke liye bana.
+        © 2026 MedLink. Local chemists ke liye bana.
       </footer>
     </main>
   )
