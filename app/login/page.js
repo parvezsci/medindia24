@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [form, setForm] = useState({
     full_name: '', phone: '', email: '', password: '', role: 'customer',
   })
+  const [agreed, setAgreed] = useState(false)
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -16,8 +17,14 @@ export default function LoginPage() {
 
   const submit = async (e) => {
     e.preventDefault()
-    setLoading(true)
     setMsg('')
+
+    if (isSignup && !agreed) {
+      setMsg('Aage badhne ke liye Terms & Conditions accept karna zaroori hai')
+      return
+    }
+
+    setLoading(true)
 
     let error
     if (isSignup) {
@@ -28,6 +35,17 @@ export default function LoginPage() {
           data: { full_name: form.full_name, phone: form.phone, role: form.role },
         },
       }))
+
+      // Signup successful hone par terms acceptance record karo
+      if (!error) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          await supabase.from('profiles').update({
+            terms_accepted_at: new Date().toISOString(),
+            terms_version: 'v1',
+          }).eq('id', user.id)
+        }
+      }
     } else {
       ;({ error } = await supabase.auth.signInWithPassword({
         email: form.email,
@@ -62,6 +80,22 @@ export default function LoginPage() {
 
         <input className={input} type="email" name="email" placeholder="Email" onChange={update} required />
         <input className={input} type="password" name="password" placeholder="Password (min 6 characters)" onChange={update} required minLength={6} />
+
+        {isSignup && (
+          <label className="flex items-start gap-2 text-sm text-black">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-1"
+            />
+            <span>
+              Main <a href="/terms" target="_blank" className="text-green-700 underline">Terms & Conditions</a> aur{' '}
+              <a href="/privacy" target="_blank" className="text-green-700 underline">Privacy Policy</a> padh chuka/chuki hoon aur accept karta/karti hoon.
+              Main samajhta/samajhti hoon ki MedLink sirf ek medium hai, dawai ki responsibility medical store aur customer ki khud ki hai.
+            </span>
+          </label>
+        )}
 
         {msg && <p className="text-red-600 text-sm">{msg}</p>}
 
