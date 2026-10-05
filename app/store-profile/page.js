@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 
-
 export default function StoreProfile() {
   const router = useRouter()
   const [userId, setUserId] = useState(null)
@@ -12,44 +11,23 @@ export default function StoreProfile() {
   const [editMode, setEditMode] = useState(false)
   const [form, setForm] = useState({ store_name: '', drug_license_no: '', address: '', pincode: '' })
   const [msg, setMsg] = useState('')
+  const [regMsg, setRegMsg] = useState('')
+  const [registering, setRegistering] = useState(false)
   const [upiId, setUpiId] = useState('')
   const [qrFile, setQrFile] = useState(null)
   const [qrMsg, setQrMsg] = useState('')
   const [broadcasts, setBroadcasts] = useState([])
+  const [earnings, setEarnings] = useState({ total: 0, delivered: 0, pending: 0 })
 
- useEffect(() => {
-  const init = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return router.push('/login')
-    setUserId(user.id)
-    const { data: storeData } = await supabase.from('stores').select('*').eq('owner_id', user.id).maybeSingle()
-
-    if (storeData) {
-      const channel = supabase
-        .channel('store-broadcasts')
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'order_broadcasts', filter: `store_id=eq.${storeData.id}` },
-          () => {
-            loadBroadcasts(storeData.id)
-            if (Notification.permission === 'granted') {
-              new Notification('MedLink', { body: 'Naya order request aaya hai!' })
-            }
-          }
-        )
-        .subscribe()
-
-      if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission()
-      }
-
-      return () => { supabase.removeChannel(channel) }
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return router.push('/login')
+      setUserId(user.id)
+      loadStore(user.id)
     }
-
-    loadStore(user.id)
-  }
-  init()
-}, [router])
+    init()
+  }, [router])
 
   const loadStore = async (uid) => {
     const { data } = await supabase.from('stores').select('*').eq('owner_id', uid).maybeSingle()
@@ -76,14 +54,13 @@ export default function StoreProfile() {
     setOrders(data || [])
     calcEarnings(data || [])
   }
-  const [earnings, setEarnings] = useState({ total: 0, delivered: 0, pending: 0 })
 
-const calcEarnings = (ordersList) => {
-  const delivered = ordersList.filter((o) => o.status === 'delivered')
-  const total = delivered.reduce((sum, o) => sum + (o.total_amount || 0), 0)
-  const pending = ordersList.filter((o) => ['accepted', 'out_for_delivery'].includes(o.status)).length
-  setEarnings({ total, delivered: delivered.length, pending })
-}
+  const calcEarnings = (ordersList) => {
+    const delivered = ordersList.filter((o) => o.status === 'delivered')
+    const total = delivered.reduce((sum, o) => sum + (o.total_amount || 0), 0)
+    const pendingCount = ordersList.filter((o) => ['accepted', 'out_for_delivery'].includes(o.status)).length
+    setEarnings({ total, delivered: delivered.length, pending: pendingCount })
+  }
 
   const loadBroadcasts = async (storeId) => {
     const { data } = await supabase
@@ -110,31 +87,47 @@ const calcEarnings = (ordersList) => {
 
   const registerStore = async (e) => {
     e.preventDefault()
-    setMsg('')
+    setRegMsg('')
 
     if (!navigator.geolocation) {
-      setMsg('Location support nahi hai is browser me')
+      setRegMsg('Location support nahi hai is browser me')
       return
     }
 
+    setRegistering(true)
+    setRegMsg('Location le rahe hain...')
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        setRegMsg('Store register ho raha hai...')
+
         const { error } = await supabase.from('stores').insert({
           ...form,
           owner_id: userId,
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         })
-        if (error) setMsg(error.message)
-        else loadStore(userId)
+
+        setRegistering(false)
+
+        if (error) {
+          if (error.message.includes('duplicate') || error.message.includes('unique')) {
+            setRegMsg('Aapka store pehle se register ho chuka hai. Page refresh karo.')
+          } else {
+            setRegMsg('Error: ' + error.message)
+          }
+        } else {
+          window.location.reload()
+        }
       },
-      () => setMsg('Location allow karo, store register karne ke liye zaroori hai')
+      (geoError) => {
+        setRegistering(false)
+        setRegMsg('Location allow karo, register karne ke liye zaroori hai. (' + geoError.message + ')')
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
   }
-  const toggleOpen = async () => {
-  await supabase.from('stores').update({ is_open: !store.is_open }).eq('owner_id', userId)
-  loadStore(userId)
-}
+
   const saveEdit = async (e) => {
     e.preventDefault()
     setMsg('')
@@ -169,9 +162,15 @@ const calcEarnings = (ordersList) => {
     }
   }
 
-  const updateItemPrice = async (itemId, price) => {
-    await supabase.from('order_items').update({ price: Number(price) }).eq('id', itemId)
+  const toggleOpen = async () => {
+    await supabase.from('stores').update({ is_open: !store.is_open }).eq('owner_id', userId)
+    loadStore(userId)
   }
+
+  const updateItemPrice = async (itemId, price, storeId) => {
+  await supabase.from('order_items').update({ price: Number(price) }).eq('id', itemId)
+  loadOrders(storeId)
+}
 
   const toggleAvailable = async (itemId, current, storeId) => {
     await supabase.from('order_items').update({ available: !current }).eq('id', itemId)
@@ -188,7 +187,19 @@ const calcEarnings = (ordersList) => {
     await supabase.from('orders').update({ status, ...(total !== null && { total_amount: total }) }).eq('id', orderId)
     loadOrders(storeId)
   }
+  const sendPriceToCustomer = async (orderId, order, storeId) => {
+  const total = order.order_items
+    .filter((it) => it.available)
+    .reduce((sum, it) => sum + (it.price || 0) * it.quantity, 0)
 
+  if (total <= 0) {
+    alert('Pehle kam se kam ek medicine ka price daalo')
+    return
+  }
+
+  await supabase.from('orders').update({ status: 'price_pending', total_amount: total }).eq('id', orderId)
+  loadOrders(storeId)
+}
   const confirmPayment = async (orderId, storeId) => {
     await supabase.from('orders').update({ payment_status: 'confirmed' }).eq('id', orderId)
     loadOrders(storeId)
@@ -209,8 +220,14 @@ const calcEarnings = (ordersList) => {
           <input className={input} name="drug_license_no" placeholder="Drug license number" onChange={update} required />
           <input className={input} name="address" placeholder="Poora address" onChange={update} required />
           <input className={input} name="pincode" placeholder="Pincode" onChange={update} required />
-          {msg && <p className="text-red-600 text-sm">{msg}</p>}
-          <button className="w-full bg-primary text-white p-3 rounded-lg font-semibold">Submit</button>
+          {regMsg && (
+            <p className={regMsg.includes('Error') || regMsg.includes('allow') ? 'text-red-600 text-sm' : 'text-secondary text-sm font-semibold'}>
+              {regMsg}
+            </p>
+          )}
+          <button disabled={registering} className="w-full bg-primary text-white p-3 rounded-lg font-semibold">
+            {registering ? 'Submit ho raha hai...' : 'Submit'}
+          </button>
         </form>
       </main>
     )
@@ -219,6 +236,17 @@ const calcEarnings = (ordersList) => {
   return (
     <main className="min-h-screen bg-bg p-4">
       <div className="max-w-2xl mx-auto space-y-5">
+
+        {/* Registration success banner (sirf pending hone tak dikhega) */}
+        {!store.is_approved && (
+          <div className="bg-orange-50 border-2 border-orange-300 rounded-xl p-4 text-center">
+            <p className="text-orange-700 font-bold text-lg">✅ Registration Ho Gaya Hai!</p>
+            <p className="text-orange-700 text-sm mt-1">
+              Aapka store admin approval ka wait kar raha hai ⏳. Approve hote hi aap orders lena shuru kar sakte ho.
+              Tab tak aap apni UPI payment details neeche se set kar sakte hain.
+            </p>
+          </div>
+        )}
 
         {/* Store profile card */}
         <div className="bg-white rounded-xl shadow p-6 space-y-2">
@@ -232,7 +260,17 @@ const calcEarnings = (ordersList) => {
               {store.is_approved ? 'Approved ✅' : 'Pending ⏳'}
             </span>
           </div>
-          <button onClick={() => setEditMode(!editMode)} className="text-secondary text-sm font-semibold">
+
+          {store.is_approved && (
+            <button
+              onClick={toggleOpen}
+              className={`text-sm font-semibold px-3 py-1 rounded-full ${store.is_open ? 'bg-secondary text-white' : 'bg-red-100 text-red-700'}`}
+            >
+              {store.is_open ? '🟢 Store Khula Hai (tap to close)' : '🔴 Store Band Hai (tap to open)'}
+            </button>
+          )}
+
+          <button onClick={() => setEditMode(!editMode)} className="text-secondary text-sm font-semibold block">
             {editMode ? 'Cancel' : 'Edit Profile'}
           </button>
 
@@ -247,9 +285,10 @@ const calcEarnings = (ordersList) => {
             </form>
           )}
 
+          {/* UPI section - approval ka wait kiye bina hi dikhega */}
           <div className="border-t border-accent pt-4 mt-2 space-y-3">
             <h3 className="font-semibold text-primary">Payment Details (UPI)</h3>
-            <p className="text-sm text-textmuted">Customer aapko seedha UPI se payment karega, isliye apna UPI ID aur QR daal do.</p>
+            <p className="text-sm text-textmuted">Customer aapko seedha UPI se payment karega, isliye apna UPI ID aur QR daal do. Approval ka wait karne ki zaroorat nahi, abhi se set kar sakte ho.</p>
 
             <form onSubmit={saveUpi} className="space-y-2">
               <input
@@ -259,30 +298,46 @@ const calcEarnings = (ordersList) => {
                 onChange={(e) => setUpiId(e.target.value)}
               />
               <input type="file" accept="image/*" onChange={(e) => setQrFile(e.target.files[0])} />
-              {store.qr_code_url && (
-                <img src={store.qr_code_url} alt="QR Code" className="w-32 h-32 object-contain border border-accent rounded-lg" />
-              )}
+              {(store.qr_code_url || upiId) && (
+  <div>
+    <p className="text-xs text-textmuted mb-1">Aapka Payment QR (customer isको scan karega):</p>
+    <img
+      src={
+        store.qr_code_url ||
+        `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+          `upi://pay?pa=${upiId}&pn=${encodeURIComponent(store.store_name)}&cu=INR`
+        )}`
+      }
+      alt="QR Code"
+      className="w-32 h-32 object-contain border border-accent rounded-lg bg-white p-1"
+    />
+  </div>
+)}
               {qrMsg && <p className="text-sm text-secondary">{qrMsg}</p>}
               <button className="bg-secondary text-white px-4 py-2 rounded-lg font-semibold text-sm">Save UPI Details</button>
             </form>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
-  <div className="bg-white rounded-xl shadow p-4 text-center">
-    <p className="text-2xl font-bold text-primary">₹{earnings.total}</p>
-    <p className="text-xs text-textmuted">Total Kamaya</p>
-  </div>
-  <div className="bg-white rounded-xl shadow p-4 text-center">
-    <p className="text-2xl font-bold text-secondary">{earnings.delivered}</p>
-    <p className="text-xs text-textmuted">Delivered Orders</p>
-  </div>
-  <div className="bg-white rounded-xl shadow p-4 text-center">
-    <p className="text-2xl font-bold text-orange-600">{earnings.pending}</p>
-    <p className="text-xs text-textmuted">Chal Rahe Orders</p>
-  </div>
-</div>
 
-        {/* Naya broadcast section */}
+        {/* Earnings summary - sirf approved stores ke liye */}
+        {store.is_approved && (
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white rounded-xl shadow p-4 text-center">
+              <p className="text-2xl font-bold text-primary">₹{earnings.total}</p>
+              <p className="text-xs text-textmuted">Total Kamaya</p>
+            </div>
+            <div className="bg-white rounded-xl shadow p-4 text-center">
+              <p className="text-2xl font-bold text-secondary">{earnings.delivered}</p>
+              <p className="text-xs text-textmuted">Delivered Orders</p>
+            </div>
+            <div className="bg-white rounded-xl shadow p-4 text-center">
+              <p className="text-2xl font-bold text-orange-600">{earnings.pending}</p>
+              <p className="text-xs text-textmuted">Chal Rahe Orders</p>
+            </div>
+          </div>
+        )}
+
+        {/* Broadcast section */}
         {broadcasts.length > 0 && (
           <div>
             <h2 className="text-xl font-semibold text-primary mb-2">Naye Order Requests</h2>
@@ -324,7 +379,7 @@ const calcEarnings = (ordersList) => {
                       type="number" placeholder="Price"
                       className="w-20 border border-accent rounded p-1"
                       defaultValue={it.price || ''}
-                      onBlur={(e) => updateItemPrice(it.id, e.target.value)}
+                      onBlur={(e) => updateItemPrice(it.id, e.target.value, o.store_id)}
                     />
                     <button
                       onClick={() => toggleAvailable(it.id, it.available, o.store_id)}
@@ -335,20 +390,23 @@ const calcEarnings = (ordersList) => {
                   </div>
                 ))}
 
-                <div className="flex gap-2 pt-2">
-                  {o.status === 'placed' && (
-                    <>
-                      <button onClick={() => updateOrderStatus(o.id, 'accepted', o, o.store_id)} className="bg-secondary text-white px-3 py-1 rounded-lg text-sm">Accept</button>
-                      <button onClick={() => updateOrderStatus(o.id, 'rejected', o, o.store_id)} className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm">Reject</button>
-                    </>
-                  )}
-                  {o.status === 'accepted' && (
-                    <button onClick={() => updateOrderStatus(o.id, 'out_for_delivery', o, o.store_id)} className="bg-primary text-white px-3 py-1 rounded-lg text-sm">Out for delivery</button>
-                  )}
-                  {o.status === 'out_for_delivery' && (
-                    <button onClick={() => updateOrderStatus(o.id, 'delivered', o, o.store_id)} className="bg-green-700 text-white px-3 py-1 rounded-lg text-sm">Mark Delivered</button>
-                  )}
-                </div>
+               <div className="flex gap-2 pt-2">
+  {o.status === 'placed' && (
+    <>
+      <button onClick={() => sendPriceToCustomer(o.id, o, o.store_id)} className="bg-secondary text-white px-3 py-1 rounded-lg text-sm">Price Bhejo Customer Ko</button>
+      <button onClick={() => updateOrderStatus(o.id, 'rejected', o, o.store_id)} className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm">Reject</button>
+    </>
+  )}
+  {o.status === 'price_pending' && (
+    <p className="text-orange-600 text-sm font-semibold">Customer ke confirm karne ka wait hai ⏳</p>
+  )}
+  {o.status === 'accepted' && (
+    <button onClick={() => updateOrderStatus(o.id, 'out_for_delivery', o, o.store_id)} className="bg-primary text-white px-3 py-1 rounded-lg text-sm">Out for delivery</button>
+  )}
+  {o.status === 'out_for_delivery' && (
+    <p className="text-secondary text-sm font-semibold">Delivery par hai, customer confirm karega jab mil jaye</p>
+  )}
+</div>
 
                 {o.payment_status === 'customer_paid' && (
                   <div className="bg-orange-50 border border-orange-300 rounded-lg p-2 flex justify-between items-center mt-2">

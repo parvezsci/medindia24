@@ -1,10 +1,13 @@
 export default function OrderTimeline({ status }) {
-  const steps = [
-    { key: 'broadcasting', label: 'Order Diya' },
-    { key: 'accepted', label: 'Accept Hua' },
-    { key: 'out_for_delivery', label: 'Delivery Par' },
-    { key: 'delivered', label: 'Mil Gaya' },
-  ]
+  const stepMap = {
+    placed: 0,
+    price_pending: 0,
+    accepted: 1,
+    out_for_delivery: 2,
+    delivered: 3,
+  }
+
+  const steps = ['Order Diya', 'Accept Hua', 'Delivery Par', 'Mil Gaya']
 
   if (status === 'rejected' || status === 'cancelled') {
     return (
@@ -14,12 +17,12 @@ export default function OrderTimeline({ status }) {
     )
   }
 
-  const currentIndex = steps.findIndex((s) => s.key === status)
+  const currentIndex = stepMap[status] ?? 0
 
   return (
     <div className="flex items-center py-3">
-      {steps.map((step, i) => (
-        <div key={step.key} className="flex items-center flex-1 last:flex-none">
+      {steps.map((label, i) => (
+        <div key={label} className="flex items-center flex-1 last:flex-none">
           <div className="flex flex-col items-center">
             <div
               className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
@@ -29,7 +32,7 @@ export default function OrderTimeline({ status }) {
               {i <= currentIndex ? '✓' : i + 1}
             </div>
             <p className={`text-[10px] mt-1 text-center w-16 ${i <= currentIndex ? 'text-primary font-semibold' : 'text-textmuted'}`}>
-              {step.label}
+              {label}
             </p>
           </div>
           {i < steps.length - 1 && (

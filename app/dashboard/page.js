@@ -13,6 +13,11 @@ export default function Dashboard() {
       if (!user) return router.push('/login')
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(data)
+
+      // Customer aur store ko seedha unke asli working page pe bhej do
+      if (data.role === 'customer') router.push('/my-orders')
+      if (data.role === 'store') router.push('/store-profile')
+      // Admin yahin rukega, neeche AdminPanel dikhega
     }
     load()
   }, [router])
@@ -22,7 +27,7 @@ export default function Dashboard() {
     router.push('/login')
   }
 
-  if (!profile) return <p className="p-6">Loading...</p>
+  if (!profile || profile.role !== 'admin') return <p className="p-6 text-textmuted">Loading...</p>
 
   return (
     <main className="p-6 space-y-4 max-w-2xl mx-auto">
@@ -31,14 +36,7 @@ export default function Dashboard() {
         <button onClick={logout} className="bg-red-600 text-white px-4 py-2 rounded-lg">Logout</button>
       </div>
       <p>Role: <b>{profile.role}</b></p>
-
-      {profile.role === 'store' && (
-        <a href="/store-profile" className="inline-block bg-primary text-white px-4 py-2 rounded-lg font-semibold">
-          Store Profile Kholo
-        </a>
-      )}
-      {profile.role === 'admin' && <AdminPanel />}
-      {profile.role === 'customer' && <p className="text-gray-600">Customer panel jaldi aa raha hai.</p>}
+      <AdminPanel />
     </main>
   )
 }
@@ -98,7 +96,8 @@ function AdminPanel() {
           <p className="font-semibold">{s.store_name}</p>
           <p className="text-sm">License: {s.drug_license_no}</p>
           <p className="text-sm">{s.address} - {s.pincode}</p>
-          <p className="text-sm">Status: {s.is_approved ? 'Approved ✅' : 'Pending ⏳'}</p>
+          <p className="text-sm">Lat/Lng: {s.lat || 'MISSING'}, {s.lng || 'MISSING'}</p>
+          <p className="text-sm">Status: {s.is_approved ? 'Approved ✅' : 'Pending ⏳'} | {s.is_open ? 'Open 🟢' : 'Closed 🔴'}</p>
           <div className="flex gap-2 pt-2">
             {!s.is_approved && (
               <button onClick={() => setApproval(s.id, true)} className="bg-green-600 text-white px-3 py-1 rounded-lg">Approve</button>
